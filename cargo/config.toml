@@ -1,0 +1,13 @@
+# Increase stack size for all targets.
+# Use 8 MB (8 * 1024 * 1024 = 8,388,608 bytes) as a starting point.
+# Adjust the value if stack overflows persist.
+
+# For Windows MSVC target (adjust triple if necessary, e.g., x86_64-pc-windows-gnu)
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-args=/STACK:8388608"]
+
+# For Linux/macOS targets (using GNU linker flags)
+# Note: This might not be necessary if the default is already 8MB or more,
+# but it doesn't hurt to be explicit.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-args=-Wl,--stack,8388608"]
