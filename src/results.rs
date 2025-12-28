@@ -139,7 +139,7 @@ pub fn write_csv_header(csv_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         // Other Time
         "OtherTime_Min", "OtherTime_Median", "OtherTime_Max", "OtherTime_Mean", "OtherTime_StdDev",
         // Other Metrics
-        "Mismatches", "Nodes", "Height"
+        "Mismatches", "Nodes", "Height", "Accuracy"
     ];
 
     #[cfg(feature = "detailed-stats")]

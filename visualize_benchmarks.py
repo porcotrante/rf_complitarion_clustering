@@ -191,8 +191,8 @@ def aggregate_results(df):
     }
 
     # --- Accuracy aggregation ---
-    if 'accuracy' in df.columns:
-        agg_funcs['accuracy'] = ['mean']
+    if 'Accuracy' in df.columns:
+        agg_funcs['Accuracy'] = ['mean']
 
     # Add conditional aggregation for pruning counts if they exist
     if 'SimplifyPruningCount' in df.columns:
