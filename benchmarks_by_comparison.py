@@ -84,7 +84,7 @@ def plot_strategy_accuracy_comparison(
     egap_agg_df,
     dataset_name,
     output_dir,
-    metric_col='meanAccuracy'
+    metric_col='Accuracy_mean'
 ):
     """
     Compares accuracy between Original and EGAP aggregated by Strategy.

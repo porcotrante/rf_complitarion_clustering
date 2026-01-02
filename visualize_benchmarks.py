@@ -190,9 +190,9 @@ def aggregate_results(df):
         'Mismatches': ['mean', 'std'],
     }
 
-    # --- Accuracy aggregation ---
+    # --- Accuracy aggregation (mean and std) ---
     if 'Accuracy' in df.columns:
-        agg_funcs['Accuracy'] = ['mean']
+        agg_funcs['Accuracy'] = ['mean', 'std']
 
     # Add conditional aggregation for pruning counts if they exist
     if 'SimplifyPruningCount' in df.columns:
@@ -213,12 +213,6 @@ def aggregate_results(df):
     for col in aggregated_df.columns:
         if col.endswith('_std'):
             aggregated_df[col] = aggregated_df[col].fillna(0)
-
-    # --- Rename accuracy column to meanAccuracy ---
-    if 'accuracy_mean' in aggregated_df.columns:
-        aggregated_df = aggregated_df.rename(
-            columns={'accuracy_mean': 'meanAccuracy'}
-        )
 
     print("Aggregated DataFrame Head:")
     print(aggregated_df.head())

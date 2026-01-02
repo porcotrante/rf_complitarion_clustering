@@ -28,7 +28,7 @@ from paths import distance_between_trees, extract_paths_from_forest
 
 # --- Configuration ---
 BASE_SEED = 42
-NUM_SEEDS_TO_RUN = 10 # Number of different RFs to train and export
+NUM_SEEDS_TO_RUN = 1 # Number of different RFs to train and export
 CLUSNUM = 10
 
 # --- Preprocessing Functions ---

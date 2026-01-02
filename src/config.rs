@@ -23,7 +23,7 @@ pub const CHOSEN_CONFIG: (&str, usize, usize) = IRIS_CONFIG; // Change this to s
 pub const K_VALUES: [usize; 1] = [0]; // k values to test (remember to change [usize; N] to the correct number)
 pub const NUM_BENCHMARK_RUNS: usize = 1; // Number of times to run each timed operation (per seed/k/strategy)
 pub const BASE_SEED: u32 = 42; // Starting seed, matching train.py
-pub const NUM_SEEDS_TO_RUN: u32 = 10; // Number of seeds to run, matching train.py
+pub const NUM_SEEDS_TO_RUN: u32 = 1; // Number of seeds to run, matching train.py
 
 // --- Strategies to test ---
 // (remember to change the number N in [EarlyStoppingStrategy; N])
