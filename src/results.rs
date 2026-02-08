@@ -2,7 +2,7 @@ use std::{error::Error, fs::{File, OpenOptions}, path::PathBuf};
 
 use csv::WriterBuilder;
 
-use crate::{benchmark::TreeComparison, config::DATASET_NAME, transform::EarlyStoppingStrategy};
+use crate::{benchmark::TreeComparison, config::DATASET_NAME, transform::EarlyStoppingStrategy, tree::Arena};
 
 pub struct BenchmarkResult {
     pub seed: u32,
@@ -49,6 +49,9 @@ pub struct BenchmarkResult {
     pub merge_pruning_count: usize,    // Nodes pruned during merge/base-case phases
     #[cfg(feature = "detailed-stats")]
     pub kept_count: usize,             // Nodes traversed but not pruned
+
+    pub tree_arena: Arena,
+    pub tree_id: usize
 }
 
 /// Prints a formatted summary table of benchmark results to the console.

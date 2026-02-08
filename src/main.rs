@@ -172,8 +172,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut egap_current_seed_run_results: Vec<BenchmarkResult> = benchmark::run_benchmarks(&egap_rf_data, &egap_prediction_path_buf, current_seed)?;
 
-        distances_to_original.push(compare_trees(&rf_data, &egap_rf_data, current_seed));
-
         // Add seed number to each result struct
         for result in current_seed_run_results.iter_mut() {
             result.seed = current_seed;
@@ -182,6 +180,34 @@ fn main() -> Result<(), Box<dyn Error>> {
         for result in egap_current_seed_run_results.iter_mut() {
             result.seed = current_seed;
         }
+
+        let mut comparisons: [f64; 4] = [0.0; 4];
+
+        for i in 0..4 {
+            let rf_result = &current_seed_run_results[i];
+            let egap_result = &egap_current_seed_run_results[i];
+
+            println!("Tentando comparar árvores");
+            let comparison = compare_trees(
+                current_seed,
+                CHOSEN_CONFIG.3,
+                &rf_result.tree_arena,
+                &egap_result.tree_arena,
+                rf_result.tree_id,
+                egap_result.tree_id,
+                CHOSEN_CONFIG.1
+            );
+
+            comparisons[i] = comparison;
+        }
+
+        // fora do loop
+        let tree_comparison = TreeComparison {
+            seed: current_seed,
+            distances: comparisons.to_vec(), // converte [f64; 4] -> Vec<f64>
+        };
+
+        distances_to_original.push(tree_comparison);
 
         // --- 3. Append Results to CSV ---
         println!("[EXPORT] Appending results for seed {} to CSV...", current_seed);

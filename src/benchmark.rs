@@ -3,7 +3,7 @@ use std::{error::Error, fs::File, path::PathBuf, time::{Duration, Instant}};
 use csv::ReaderBuilder;
 use transform::resimplify_from_arena;
 
-use crate::{config::{K_VALUES, NUM_BENCHMARK_RUNS, NUM_FEATURES, STRATEGIES_TO_TEST}, cpu_time::get_cpu_time, export, paths::{distance_between_trees, extract_paths_from_arena}, results::BenchmarkResult, transform::{self, BenchmarkStats, EarlyStoppingStrategy, RandomForestData, predict_with_merged_tree, predict_with_original_rf, transform_rf_partitioned}, tree::{Arena, NodeId}, utils::calculate_stats};
+use crate::{config::{K_VALUES, NUM_BENCHMARK_RUNS, NUM_FEATURES, STRATEGIES_TO_TEST}, cpu_time::get_cpu_time, export, paths::{distance_between_trees, extract_paths_from_arena, extract_paths_from_arena_for_instances, mean_feature_overlap_distance}, results::BenchmarkResult, transform::{self, BenchmarkStats, EarlyStoppingStrategy, RandomForestData, predict_with_merged_tree, predict_with_original_rf, transform_rf_partitioned}, tree::{Arena, NodeId}, utils::calculate_stats};
 
 /// Performs the benchmark for a single configuration (k, strategy) using the provided RF data and prediction file.
 ///
@@ -38,6 +38,7 @@ pub fn benchmark_single_config(
     let mut final_height = 0;
     let mut first_run_stats = BenchmarkStats::default(); // Store detailed stats from the first run
     let mut acc: f64 = 0.0;
+    let mut global_id: usize = 0;
 
     // --- Run the transformation multiple times for timing ---
     for i in 0..NUM_BENCHMARK_RUNS {
@@ -50,6 +51,9 @@ pub fn benchmark_single_config(
             current_stats,
             current_height
         ) = transform_rf_partitioned(rf_data, partition_depth_k, current_strategy);
+
+        //puting the information into the global variables (only makes sense if run once)
+        global_id = current_root_id;
 
         let total_transform_duration = total_transform_start.elapsed();
         let cpu_end = get_cpu_time();
@@ -162,6 +166,8 @@ pub fn benchmark_single_config(
         nodes: final_nodes,
         height: final_height,
         accuracy: acc,
+        tree_arena: arena,
+        tree_id: global_id,
         // Use detailed stats from the first run
         #[cfg(feature = "detailed-stats")]
         simplify_pruning_count: first_run_stats.simplify_pruning_count,
@@ -200,39 +206,40 @@ pub struct TreeComparison {
 }
 
 pub fn compare_trees(
-    rf_data: &RandomForestData,
-    egap_data: &RandomForestData,
     seed: u32,
-) -> TreeComparison {
-    let mut distances = Vec::with_capacity(STRATEGIES_TO_TEST.len());
-
-    for &current_strategy in STRATEGIES_TO_TEST.iter() {
-        let distance =
-            compare_trees_per_strat(rf_data, egap_data, current_strategy, seed);
-        distances.push(distance);
+    dist: bool,
+    normal_arena: &Arena,
+    egap_arena: &Arena,
+    normal_id: usize,
+    egap_id: usize,
+    feat_num: usize,
+) -> f64 {
+        let distance: f64;
+        if dist {
+            distance = compare_trees_per_strat(normal_arena, normal_id, egap_arena, egap_id);
+        }
+        else {
+            println!("Usando Jaccard");
+            distance = mean_feature_overlap_distance(normal_arena, normal_id, egap_arena, egap_id, feat_num);
+        }
+        
+        distance
     }
 
-    TreeComparison {
-        seed,
-        distances,
-    }
+pub fn compare_trees_per_strat(normal_arena: &Arena, normal_id: usize, egap_arena: &Arena, egap_id: usize) -> f64 {
+    let complete_paths = extract_paths_from_arena(normal_arena, normal_id);
+    println!("Caminhos da árvore normal extraídos");
+    let egap_paths = extract_paths_from_arena(egap_arena, egap_id);
+    println!("Caminhos da árvore egap extraídos");
+
+    return distance_between_trees(&complete_paths, &egap_paths);
 }
 
-pub fn compare_trees_per_strat(rf_data: &RandomForestData, egap_data: &RandomForestData, current_strategy: EarlyStoppingStrategy, seed: u32) -> f64 {
-    let (
-        current_arena, current_root_id,
-        _,
-        _
-    ) = transform_rf_partitioned(rf_data, 0, current_strategy);
-
-    let (
-        egap_current_arena, egap_current_root_id,
-        _,
-        _
-    ) = transform_rf_partitioned(egap_data, 0, current_strategy);
-
-    let complete_paths = extract_paths_from_arena(&current_arena, current_root_id);
-    let egap_paths = extract_paths_from_arena(&egap_current_arena, egap_current_root_id);
+pub fn compare_trees_per_strat_instance(normal_arena: &Arena, normal_id: usize, egap_arena: &Arena, egap_id: usize, normal_buf: &PathBuf, egap_buf: &PathBuf) -> f64 {
+    let complete_paths = extract_paths_from_arena_for_instances(normal_arena, normal_id, normal_buf);
+    println!("Caminhos da árvore normal extraídos");
+    let egap_paths = extract_paths_from_arena_for_instances(egap_arena, egap_id, egap_buf);
+    println!("Caminhos da árvore egap extraídos");
 
     return distance_between_trees(&complete_paths, &egap_paths);
 }

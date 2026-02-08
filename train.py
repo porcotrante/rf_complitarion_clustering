@@ -1,6 +1,7 @@
 # !pip install ucimlrepo # if in Colab
 from collections import Counter, defaultdict
 import csv
+import itertools
 import random
 import numpy as np
 import pandas as pd
@@ -24,12 +25,12 @@ import pandas as pd
 from typing import List, Set, Union, Callable, Optional
 from sklearn.preprocessing import LabelEncoder
 
-from paths import distance_between_trees, extract_paths_from_forest
+from paths import distance_between_trees, extract_paths_from_forest, average_intracluster_distance
 
 # --- Configuration ---
 BASE_SEED = 42
-NUM_SEEDS_TO_RUN = 1 # Number of different RFs to train and export
-CLUSNUM = 10
+NUM_SEEDS_TO_RUN = 5 # Number of different RFs to train and export
+CLUSNUM = 7
 
 # --- Preprocessing Functions ---
 def create_binary_preprocessor(dataset_name: str, classes_to_keep: Union[List[int], Set[int]], zero_class: int):
@@ -207,13 +208,15 @@ dataset_metadata = {
         'id': 267,
         'test_size': 270,
         'n_trees': 100,
-        'max_depth': 4
+        'max_depth': 4,
+        'features': 4
     },
     'ecoli': {
         'id': 39,
         'test_size': 66,
-        'n_trees': 100,
+        'n_trees': 75,
         'max_depth': 4,
+        'features': 7,
         'preprocess': [
             create_class_filter_preprocessor(
                 dataset_name='Ecoli',
@@ -229,12 +232,14 @@ dataset_metadata = {
         'test_size': 3781,
         'n_trees': 25,
         'max_depth': 4,
+        'features': 10
     },
     'glass2': {
         'id': 42,
         'test_size': 33,
         'n_trees': 25,
         'max_depth': 4,
+        'features': 9,
         'preprocess': create_binary_preprocessor(
             dataset_name='Glass2',
             classes_to_keep=[1, 2, 3],
@@ -245,31 +250,35 @@ dataset_metadata = {
         'id': 52,
         'test_size': 70,
         'n_trees': 15,
-        'max_depth': 4
+        'max_depth': 4,
+        'features': 34,
     },
     'iris': {
         'id': 53,
         'test_size': 30,
         'n_trees': 100,
-        'max_depth': 4
+        'max_depth': 4,
+        'features': 4,
     },
     'segmentation': {
         'id': 50,
         'test_size': 42,
         'n_trees': 15,
-        'max_depth': 4
+        'max_depth': 4,
+        'features': 19,
     },
     'shuttle': {
         'id': 148,
         'test_size': 11600,
         'n_trees': 50,
-        'max_depth': 4
+        'max_depth': 4,
+        'features': 7,
     },
     'waveform-1': {
         'id': 107,
         'test_size': 1000,
         'n_trees': 15,
-        'max_depth': 4
+        'max_depth': 4,
     },
     'wine': {
         'id': 109,
@@ -282,6 +291,7 @@ dataset_metadata = {
         'test_size': 60,
         'n_trees': 15,
         'max_depth': 4,
+        'features': 22,
         # Define preprocessing as a list (pipeline) - Sklearn preprocessor first, then binary filter/relabel
         'preprocess': [
             # Use the combined sklearn preprocessor
@@ -302,6 +312,7 @@ dataset_metadata = {
         'test_size': 9768,
         'n_trees': 15,
         'max_depth': 4,
+        'features': 107,
         'preprocess': [
             preprocess_adult_target, # Clean the target variable first
             lambda X_df, y: preprocess_features_sklearn(X_df, y),
@@ -312,13 +323,15 @@ dataset_metadata = {
         'test_size': 1624,
         'n_trees': 15,
         'max_depth': 4,
+        'features': 111,
         'preprocess': preprocess_features_sklearn
     },
     'default-credit': {
         'id': 350,
         'test_size': 6000,
-        'n_trees': 15,
+        'n_trees': 20,
         'max_depth': 4,
+        'features': 32,
         'preprocess': [
             lambda X_df, y: preprocess_features_sklearn(
                 X_df, y,
@@ -534,31 +547,29 @@ def get_prediction_df(rf: RandomForestClassifier, X_full: np.ndarray) -> pd.Data
 
 def kmeans(forest_paths, classificacoes_por_arvore, n_clusters, max_iter=50):
     """
-    Clusteriza árvores usando K-Means baseado na distância personalizada entre árvores
-    e retorna o resultado NO MESMO FORMATO do algoritmo original:
-    
+    Clusteriza árvores usando K-Means (medoid) baseado na distância personalizada
+    e imprime:
+        - Distância média entre todas as árvores da floresta
+        - Distância média dentro de cada cluster
+
+    Retorna:
         labels: {id_arvore_original: cluster_id}
         acc_table: {id_arvore_original: valor_original}
     """
 
-    # Ordenar índices como no algoritmo original
     indices = sorted(classificacoes_por_arvore.keys())
-
-    # Quantidade de árvores
     n_arvores = len(indices)
 
-    # === 1. Inicialização: sorteia k árvores como centróides (por índice ordenado) ===
+    # === 1. Inicialização ===
     escolhidos = np.random.choice(n_arvores, size=n_clusters, replace=False)
-    centroid_indices = [indices[i] for i in escolhidos]  # índices reais das árvores
+    centroid_indices = [indices[i] for i in escolhidos]
 
     for _ in range(max_iter):
 
-        # === 2. Atribuição: cluster de cada árvore ===
+        # === 2. Atribuição ===
         clusters_tmp = defaultdict(list)
 
         for real_idx in indices:
-
-            # distâncias entre a árvore real_idx e cada centro
             distancias = [
                 distance_between_trees(
                     forest_paths[real_idx],
@@ -570,19 +581,16 @@ def kmeans(forest_paths, classificacoes_por_arvore, n_clusters, max_iter=50):
             melhor_cluster = int(np.argmin(distancias))
             clusters_tmp[melhor_cluster].append(real_idx)
 
-        # === 3. Atualização dos centróides (tipo medoid) ===
+        # === 3. Atualização (medoids) ===
         novos_centros = []
 
         for k_id in range(n_clusters):
-
             membros = clusters_tmp.get(k_id, [])
 
-            # se cluster está vazio -> escolhe um centro aleatório
             if not membros:
                 novos_centros.append(np.random.choice(indices))
                 continue
 
-            # acha o medoid: árvore com menor soma de distâncias internas
             melhor_medoid = None
             melhor_soma = float("inf")
 
@@ -599,20 +607,23 @@ def kmeans(forest_paths, classificacoes_por_arvore, n_clusters, max_iter=50):
 
             novos_centros.append(melhor_medoid)
 
-        # === 4. Critério de convergência ===
         if novos_centros == centroid_indices:
             break
 
         centroid_indices = novos_centros
 
-    # === Final: construir labels no mesmo formato do seu algoritmo ===
+    # ==========================================================
+    # === Final: formato original ===
+    # ==========================================================
     labels = {}
     for cluster_id, membros in clusters_tmp.items():
         for m in membros:
             labels[m] = cluster_id
-        print(f"Cluster {cluster_id} - tamanho {len(membros)}")
 
-    acc_table = {i: classificacoes_por_arvore[i][1] for i in classificacoes_por_arvore.keys()}
+    acc_table = {
+        i: classificacoes_por_arvore[i][1]
+        for i in classificacoes_por_arvore.keys()
+    }
 
     return labels, acc_table
 
@@ -926,6 +937,7 @@ def main(args):
     all_node_counts = []
     all_unique_predicate_counts = []
     all_max_depths = [] # New list to store max depth per RF run
+    all_intracluser_distances = np.zeros(NUM_SEEDS_TO_RUN)
 
     print("\n--- Per-Seed Training & Export ---")
     for i in range(NUM_SEEDS_TO_RUN):
@@ -969,6 +981,9 @@ def main(args):
             #clusterizing forest and applying egap
             paths = extract_paths_from_forest(rf_classifier)
             clusters, acc_table = kmeans(paths, preds, CLUSNUM)
+            intra_dist = average_intracluster_distance(clusters, rf_classifier, X_processed_df.shape[1])
+            all_intracluser_distances[i] = intra_dist
+            print(f"DISTÂNCIA MÉDIA INTRACLUSTER PARA SEED {current_seed}: {intra_dist}")
             working_idle = criar_working_idle_clusters(clusters, CLUSNUM)
             selected = RD_execution(100, working_idle, acc_table)
             egapForest = construir_subfloresta(rf_classifier, selected)
@@ -1051,7 +1066,7 @@ def main(args):
     else:
          print("  Max Depth (Height) per RF: No successful runs to aggregate.")
 
-
+    print(f"Distância intracluster média entre todas as seeds: {all_intracluser_distances.mean()}")
     print(f"\n--- Finished processing dataset {dataset_name} for {NUM_SEEDS_TO_RUN} seeds ---")
 
 if __name__ == "__main__":
