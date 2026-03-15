@@ -8,3 +8,5 @@ INSTRUCTIONS.md
 *.exe
 meanCalc.py
 generalPlot.py
+*.pdf
+*.svg
