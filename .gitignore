@@ -6,3 +6,5 @@ src/rf
 INSTRUCTIONS.md
 *.pdb
 *.exe
+meanCalc.py
+generalPlot.py

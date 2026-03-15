@@ -19,64 +19,64 @@ comparisons = [
         dataset_name="banknote",
         original_mean_time=[23.371246, 25.059254, 15.097239, 4.591239],
         egap_mean_time=[10.037311, 9.798459, 6.651473, 3.970800],
-        original_mean_accuracy=[96.8146, 96.8146, 96.8146, 96.8146],
-        egap_mean_accuracy=[97.037, 97.037, 97.037, 97.037],
+        original_mean_accuracy=[97.0372, 97.0372, 97.0372, 97.0372],
+        egap_mean_accuracy=[96.5928, 96.5928, 96.5928, 96.5928],
     ),
 
     Comparison(
         dataset_name="ecoli",
         original_mean_time=[418.261051, 202.242370, 187.877388, 64.420287],
         egap_mean_time=[121.394482, 54.833138, 52.577212, 28.682314],
-        original_mean_accuracy=[85.606, 85.606, 85.606, 85.606],
-        egap_mean_accuracy=[85.606, 85.606, 85.606, 85.606],
+        original_mean_accuracy=[89.393, 89.393, 89.393, 89.393],
+        egap_mean_accuracy=[87.8785, 87.8785, 87.8785, 87.8785],
     ),
 
     Comparison(
         dataset_name="glass2",
         original_mean_time=[45.638739, 23.585665, 22.253137, 16.102551],
         egap_mean_time=[23.671755, 11.666625, 11.513025, 8.041798],
-        original_mean_accuracy=[76.9696, 76.9696, 76.9696, 76.9696],
-        egap_mean_accuracy=[75.7576, 75.7576, 75.7576, 75.7576],
+        original_mean_accuracy=[81.25, 81.25, 81.25, 81.25],
+        egap_mean_accuracy=[78.75, 78.75, 78.75, 78.75],
     ),
 
     Comparison(
         dataset_name="iris",
         original_mean_time=[0.546056, 0.315266, 0.207078, 0.181927],
         egap_mean_time=[0.142001, 0.054570, 0.060331, 0.087005],
-        original_mean_accuracy=[94.0, 94.0, 94.0, 94.0],
-        egap_mean_accuracy=[94.6667, 94.6667, 94.6667, 94.6667],
+        original_mean_accuracy=[92.0, 92.0, 92.0, 92.0],
+        egap_mean_accuracy=[92.0, 92.0, 92.0, 92.0],
     ),
 
     Comparison(
         dataset_name="magic",
         original_mean_time=[328.888145, 243.474653, 242.395150, 217.818362],
         egap_mean_time=[13.797572, 6.769391, 6.949963, 6.108970],
-        original_mean_accuracy=[80.997, 80.997, 80.997, 80.997],
-        egap_mean_accuracy=[81.0635, 81.0635, 81.0635, 81.0635],
+        original_mean_accuracy=[81.799, 81.799, 81.799, 81.799],
+        egap_mean_accuracy=[81.217, 81.217, 81.2175, 81.217],
     ),
 
     Comparison(
         dataset_name="segmentation",
         original_mean_time=[70.447441, 42.400211, 32.143327, 37.339492],
         egap_mean_time=[4.962065, 2.415110, 2.325787, 2.356564],
-        original_mean_accuracy=[85.714, 85.714, 85.714, 85.714],
-        egap_mean_accuracy=[85.714, 85.714, 85.714, 85.714],
+        original_mean_accuracy=[90.476, 90.476, 90.476, 90.476],
+        egap_mean_accuracy=[92.857, 92.857, 92.857, 92.857],
     ),
 
     Comparison(
         dataset_name="shuttle",
         original_mean_time=[16.657736, 11.527301, 10.308572, 4.681688],
         egap_mean_time=[1.287089, 0.631073, 0.591181, 0.529137],
-        original_mean_accuracy=[0.1186, 0.1186, 0.1186, 0.1186],
-        egap_mean_accuracy=[0.1259, 0.1259, 0.1259, 0.1259],
+        original_mean_accuracy=[0.1414, 0.1414, 0.1414, 0.1414],
+        egap_mean_accuracy=[0.145, 0.145, 0.145, 0.145],
     ),
 
     Comparison(
         dataset_name="default-credit",
         original_mean_time=[69.618340, 41.175384, 40.275893, 40.655634],
         egap_mean_time=[1.354086, 0.567144, 0.528345, 0.887602],
-        original_mean_accuracy=[81.567, 81.567, 81.567, 81.567],
-        egap_mean_accuracy=[82.05, 82.05, 82.05, 82.05],
+        original_mean_accuracy=[81.4, 81.4, 81.4, 81.4],
+        egap_mean_accuracy=[81.533, 81.533, 81.533, 81.533],
     ),
 ]
 
@@ -158,25 +158,58 @@ plt.close(fig)
 fig, axes = plt.subplots(2, 4, figsize=(18, 8), sharey=True)
 axes = axes.flatten()
 
+bar_width = 0.35
+x = np.arange(len(STRATEGIES))
+
 for ax, comp in zip(axes, comparisons):
-    ax.plot(STRATEGIES, comp.original_mean_accuracy, marker="o", label="Original")
-    ax.plot(STRATEGIES, comp.egap_mean_accuracy, marker="o", label="EGAP")
+    bars_orig = ax.bar(
+        x - bar_width / 2,
+        comp.original_mean_accuracy,
+        bar_width,
+        label="Original"
+    )
+    bars_egap = ax.bar(
+        x + bar_width / 2,
+        comp.egap_mean_accuracy,
+        bar_width,
+        label="EGAP"
+    )
+
+    # Coloca os valores embaixo de cada barra
+    for bar in list(bars_orig) + list(bars_egap):
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            -0.02 * max(ax.get_ylim()),
+            f"{height:.2f}",
+            ha="center",
+            va="top",
+            fontsize=12,
+            rotation=90
+        )
 
     ax.set_title(comp.dataset_name)
+    ax.set_xticks(x)
+    ax.set_xticklabels(STRATEGIES, rotation=30, ha="right")
     ax.set_ylabel("Accuracy (%)")
+
+# Ajusta limite inferior pra dar espaço aos números
+for ax in axes:
+    ymin, ymax = ax.get_ylim()
+    ax.set_ylim(bottom=ymin - 0.08 * ymax)
 
 fig.legend(
     loc="center left",
-    bbox_to_anchor=(1.0, 1),
-    fontsize=10,
+    bbox_to_anchor=(1.0, 0.5),
     frameon=False
 )
 
-fig.suptitle("Accuracy Comparison", fontsize=16)
+fig.suptitle("Accuracy Comparison (Original vs EGAP)", fontsize=24)
 plt.tight_layout()
-plt.savefig("accuracy.pdf", format="pdf")
+plt.savefig("accuracy_bar.pdf", format="pdf")
 plt.close(fig)
 
+"""
 import math
 
 print("=" * 80)
@@ -202,3 +235,4 @@ for comp in comparisons:
         )
 
 print("\nDone.")
+"""

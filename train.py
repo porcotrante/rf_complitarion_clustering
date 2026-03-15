@@ -199,9 +199,6 @@ def preprocess_features_sklearn(X_df: pd.DataFrame, y: np.ndarray, categorical_f
 
     return X_processed_df, y
 
-
-
-
 # Dataset metadata
 dataset_metadata = {
     'banknote': {
@@ -341,7 +338,6 @@ dataset_metadata = {
     }
 }
 
-
 def preprocess_target_variable(X_df: pd.DataFrame, y: np.ndarray):
     """
     Preprocesses the target variable y.
@@ -394,7 +390,7 @@ def obter_classificacoes_por_arvore(floresta, X_club, Y_club):
         resultados[i] = [predicoes, acc]
     return resultados
 
-def get_trained_rf(config, train_test_data, current_seed: int):
+def get_trained_rf(config, train_test_data, x_pred, y_pred, current_seed: int):
     """Trains RF with a specific seed and returns classifier and accuracy."""
     print(f"Training RF with seed {current_seed}...")
     n_trees = config['n_trees']
@@ -403,9 +399,9 @@ def get_trained_rf(config, train_test_data, current_seed: int):
     # Use current_seed for RF training
     rf_classifier = RandomForestClassifier(n_estimators=n_trees, max_depth=max_depth, random_state=current_seed)
     rf_classifier.fit(X_train, y_train)
-    y_pred = rf_classifier.predict(X_test)
-    score = accuracy_score(y_test, y_pred)
-    preds = obter_classificacoes_por_arvore(rf_classifier, X_test, y_test)
+    previsoes = rf_classifier.predict(X_test) #obtendo a acuáricia da floresta com o conjunto de testes
+    score = accuracy_score(y_test, previsoes)
+    preds = obter_classificacoes_por_arvore(rf_classifier, x_pred, y_pred) #esses resultados serão usados para a clusterização
     print(f"RF Training complete. Test accuracy [seed={current_seed}]: {score * 100:.2f}%")
     return rf_classifier, score, preds
 
@@ -951,16 +947,16 @@ def main(args):
             )
             print(f"Train size: {len(y_train)}, Test size: {len(y_test)}")
 
-            #X_test, X_preds, y_test, y_preds = train_test_split(
-                #X_test, y_test, test_size=0.5, random_state=current_seed
-            #)
+            X_test, X_preds, y_test, y_preds = train_test_split(
+                X_test, y_test, test_size=0.5, random_state=current_seed
+            )
 
             # Ensure split data is float32 (redundant if X_final is already float32, but safe)
             if X_train.dtype != np.float32: X_train = X_train.astype(np.float32)
             if X_test.dtype != np.float32: X_test = X_test.astype(np.float32)
 
             # 2. Train RF with current seed (pass the split tuple)
-            rf_classifier, accuracy, preds = get_trained_rf(dataset_config, (X_train, X_test, y_train, y_test), current_seed)
+            rf_classifier, accuracy, preds = get_trained_rf(dataset_config, (X_train, X_test, y_train, y_test), X_preds, y_preds, current_seed)
 
             # 3. Get RF stats (including max_depth)
             node_count, unique_predicates, max_depth_run = get_rf_stats(rf_classifier) # Get max_depth_run

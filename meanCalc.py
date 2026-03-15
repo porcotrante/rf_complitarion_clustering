@@ -5,9 +5,9 @@ from typing import List
 # =========================
 # CONFIGURAÇÃO
 # =========================
-DATASET_NAME = "iris"  # <-- altere aqui
-ORIGINAL_CSV = "results/benchmark_results_iris_all_seeds.csv"
-EGAP_CSV = "results/egap_benchmark_results_iris_all_seeds.csv"
+DATASET_NAME = "shuttle"  # <-- altere aqui
+ORIGINAL_CSV = "results/benchmark_results_shuttle_all_seeds.csv"
+EGAP_CSV = "results/egap_benchmark_results_shuttle_all_seeds.csv"
 
 # =========================
 # STRUCT (dataclass)
